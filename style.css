@@ -1,0 +1,129 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #050505;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    color: white;
+    font-family: 'Press Start 2P', cursive;
+    overflow: hidden;
+    user-select: none;
+    touch-action: none;
+}
+
+#game-container {
+    position: relative;
+    width: 800px;
+    height: 600px;
+    box-shadow: 0 0 100px rgba(0, 255, 255, 0.1);
+    border: 2px solid #333;
+}
+
+@media (max-width: 1024px) {
+    #game-container {
+        width: 100vw;
+        height: 100vh;
+        border: none;
+    }
+    canvas { width: 100%; height: 100%; }
+}
+
+canvas {
+    background-color: #080810;
+    image-rendering: pixelated;
+    display: block;
+}
+
+/* UI ELEMENTS */
+.ui-layer {
+    position: absolute; pointer-events: none; width: 100%; height: 100%; top: 0; left: 0;
+    display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; z-index: 10;
+}
+
+.hud {
+    display: flex; justify-content: space-between; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px;
+}
+
+#timer { color: #ffcc00; }
+#levelDisplay { color: #00ffcc; }
+#score { color: #ff00de; }
+
+.dash-container {
+    position: absolute; top: 50px; left: 20px; width: 150px;
+}
+.dash-label { font-size: 8px; margin-bottom: 5px; color: #00ffff; }
+#dash-bar {
+    width: 100%; height: 8px; background-color: #00ffff;
+    box-shadow: 0 0 5px #00ffff; transition: width 0.1s;
+}
+
+/* MENU & MESSAGES */
+.center-msg {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    text-align: center; width: 100%; pointer-events: auto;
+}
+
+h1 { font-size: 40px; margin-bottom: 20px; color: #fff; text-shadow: 4px 4px 0 #00ffff; line-height: 1.5; }
+.blink { animation: blinker 0.8s step-end infinite; }
+@keyframes blinker { 50% { opacity: 0; } }
+
+.controls-box {
+    margin-top: 30px; padding: 15px; border: 1px dashed #444; background: rgba(0,0,0,0.8); display: inline-block;
+}
+.controls-box p { margin: 8px 0; font-size: 10px; color: #aaa; text-align: left; }
+
+/* SKIN SELECTOR */
+.skin-selector { margin: 20px 0; font-size: 12px; }
+.skin-opt { cursor: pointer; padding: 5px 10px; color: #555; display: inline-block; }
+.skin-opt.active { color: #00ffff; text-shadow: 0 0 5px #00ffff; }
+.skin-opt:hover { color: #fff; }
+
+/* AUDIO CONTROLS */
+.audio-controls {
+    position: absolute; top: 20px; right: 20px; z-index: 100;
+    display: flex; gap: 15px; pointer-events: auto;
+}
+#music-btn, #mute-btn { font-size: 20px; cursor: pointer; }
+
+/* MOBILE */
+.mobile-controls {
+    display: none; position: absolute; bottom: 20px; width: 100%; height: 140px;
+    pointer-events: auto; justify-content: space-between; padding: 0 40px; box-sizing: border-box;
+}
+@media (max-width: 1024px) {
+    .mobile-controls { display: flex; } .controls-box { display: none; }
+}
+.d-pad, .action-pad { position: relative; width: 140px; height: 140px; }
+.d-btn, .act-btn {
+    position: absolute; width: 45px; height: 45px; background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 50%;
+}
+.d-btn:active, .act-btn:active { background: rgba(0, 255, 255, 0.3); }
+.d-up { top: 0; left: 47px; } .d-down { bottom: 0; left: 47px; }
+.d-left { top: 47px; left: 0; } .d-right { top: 47px; right: 0; }
+.btn-jump { bottom: 0; right: 47px; background: rgba(0, 255, 0, 0.1); }
+.btn-atk { top: 47px; right: 0; border-color: #ff00de; }
+.btn-dash { top: 47px; left: 0; }
+.btn-ult { top: 0; right: 47px; border-color: #aa00ff; }
+
+#rotate-msg {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: #000; color: #fff; z-index: 9999; justify-content: center; align-items: center; text-align: center;
+}
+@media (max-width: 1024px) and (orientation: portrait) { #rotate-msg { display: flex; } }
+
+#crt-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    background-size: 100% 2px, 3px 100%; pointer-events: none; z-index: 999;
+}
+
+.glitch { position: relative; }
+.glitch::before, .glitch::after { content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+.glitch::before { left: 2px; text-shadow: -1px 0 #ff00c1; clip: rect(44px, 450px, 56px, 0); animation: glitch-anim 5s infinite linear alternate-reverse; }
+.glitch::after { left: -2px; text-shadow: -1px 0 #00fff9; clip: rect(44px, 450px, 56px, 0); animation: glitch-anim2 5s infinite linear alternate-reverse; }
+@keyframes glitch-anim { 0% { clip: rect(11px, 9999px, 81px, 0); } 100% { clip: rect(94px, 9999px, 69px, 0); } }
+@keyframes glitch-anim2 { 0% { clip: rect(48px, 9999px, 25px, 0); } 100% { clip: rect(33px, 9999px, 46px, 0); } }

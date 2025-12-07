@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Neon Platformer - Hardcore Mode</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: white;
+            font-family: 'Press Start 2P', cursive;
+            overflow: hidden;
+        }
+        
+        #game-container {
+            position: relative;
+            box-shadow: 0 0 50px rgba(0, 255, 204, 0.2);
+            border-radius: 4px;
+        }
+
+        canvas {
+            background-color: #0f0f1a;
+            border: 4px solid #00ffcc;
+            border-radius: 4px;
+            display: block;
+        }
+
+        .ui-layer {
+            position: absolute;
+            pointer-events: none;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            font-size: 16px;
+            text-shadow: 2px 2px 0 #000;
+            color: #00ffcc;
+        }
+
+        .center-msg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 40px;
+            margin-bottom: 20px;
+            color: #ff00ff;
+            text-shadow: 4px 4px 0 #4a004a;
+            line-height: 1.5;
+        }
+
+        p {
+            font-size: 14px;
+            color: #ccc;
+            line-height: 1.6;
+        }
+
+        .blink {
+            animation: blinker 1s linear infinite;
+        }
+
+        @keyframes blinker {
+            50% { opacity: 0; }
+        }
+
+        #timer {
+            color: #ffcc00;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    
+    <div class="ui-layer">
+        <div class="hud">
+            <div>NIVEAU: <span id="levelDisplay">1</span>/20</div>
+            <div>TEMPS: <span id="timer">00.00</span></div>
+        </div>
+        
+        <div id="message" class="center-msg">
+            <h1>NEON JUMP</h1>
+            <p class="blink">APPUIE SUR ESPACE POUR JOUER</p>
+            <p style="margin-top:20px; font-size:10px; color:#666;">FLÈCHES = BOUGER | ESPACE = SAUT</p>
+        </div>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const uiLevel = document.getElementById('levelDisplay');
+const uiTimer = document.getElementById('timer');
+const uiMessage = document.getElementById('message');
+
+const GAME_STATE = {
+    MENU: 0,
+    PLAYING: 1,
+    GAME_OVER: 2,
+    VICTORY: 3
+};
+
+let currentState = GAME_STATE.MENU;
+let currentLevel = 1;
+let startTime = 0;
+let levelTimeLimit = 0;
+let currentTime = 0;
+
+// Inputs
+const keys = { right: false, left: false, up: false };
+
+// Player
+const player = {
+    x: 50, y: 0, width: 20, height: 20, // Plus petit pour plus de difficulté
+    dx: 0, dy: 0, speed: 6, jumpForce: 13, gravity: 0.7,
+    grounded: false, color: '#00ffcc'
+};
+
+// Goal
+const goal = { x: 0, y: 0, width: 30, height: 50, color: '#ff00ff' };
+
+let platforms = [];
+let particles = [];
+let stars = [];
+
+// Init Stars Background
+for(let i=0; i<100; i++) {
+    stars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 2,
+        alpha: Math.random()
+    });
+}
+
+function init() {
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'ArrowRight') keys.right = true;
+        if (e.code === 'ArrowLeft') keys.left = true;
+        if (e.code === 'Space' || e.code === 'ArrowUp') {
+            keys.up = true;
+            if (currentState !== GAME_STATE.PLAYING) handleStateInput();
+        }
+    });
+
+    window.addEventListener('keyup', (e) => {
+        if (e.code === 'ArrowRight') keys.right = false;
+        if (e.code === 'ArrowLeft') keys.left = false;
+        if (e.code === 'Space' || e.code === 'ArrowUp') keys.up = false;
+    });
+
+    loop();
+}
+
+function handleStateInput() {
+    if (currentState === GAME_STATE.MENU || currentState === GAME_STATE.GAME_OVER || currentState === GAME_STATE.VICTORY) {
+        currentLevel = 1;
+        startLevel(currentLevel);
+    }
+}
+
+function startLevel(level) {
+    player.x = 50;
+    player.y = canvas.height - 150;
+    player.dx = 0;
+    player.dy = 0;
+    platforms = [];
+
+    // Difficulté progressive
+    // Temps limite : commence large, diminue vite
+    // Niveau 1 = 30s, Niveau 20 = 15s (très dur vu la longueur)
+    levelTimeLimit = Math.max(15, 40 - level) * 1000; 
+    startTime = Date.now();
+    currentState = GAME_STATE.PLAYING;
+    uiMessage.style.display = 'none';
+
+    generateMap(level);
+    uiLevel.innerText = currentLevel;
+}
+
+function generateMap(level) {
+    // Platforme de départ
+    platforms.push({ x: 0, y: canvas.height - 50, w: 200, h: 50, type: 'start' });
+
+    let xPos = 200;
+    let yPos = canvas.height - 50;
+    
+    // Plus de plateformes = niveau plus long
+    const numPlatforms = 15 + level * 2; 
+
+    for (let i = 0; i < numPlatforms; i++) {
+        // Gap (espace vide) : Augmente avec le niveau
+        // Max saut possible ~ 180px avec ces settings
+        // Niv 1 : gap ~60-100
+        // Niv 20 : gap ~100-170 !
+        let minGap = 60 + (level * 2);
+        let maxGap = 100 + (level * 4);
+        let gap = minGap + Math.random() * (maxGap - minGap);
+
+        // Largeur plateforme : Diminue avec le niveau
+        let minWidth = Math.max(30, 80 - (level * 3));
+        let maxWidth = Math.max(50, 150 - (level * 5));
+        let width = minWidth + Math.random() * (maxWidth - minWidth);
+
+        // Hauteur : Variation verticale
+        let heightChange = (Math.random() * 160) - 80; // +/- 80px
+
+        xPos += gap;
+        yPos += heightChange;
+
+        // Bornes verticales
+        if (yPos > canvas.height - 50) yPos = canvas.height - 50;
+        if (yPos < 100) yPos = 100;
+
+        platforms.push({ x: xPos, y: yPos, w: width, h: 20, type: 'normal' });
+    }
+
+    // Goal sur la dernière
+    const last = platforms[platforms.length - 1];
+    goal.x = last.x + last.w / 2 - goal.width / 2;
+    goal.y = last.y - goal.height;
+}
+
+function update() {
+    if (currentState !== GAME_STATE.PLAYING) return;
+
+    // Timer Logic
+    let elapsed = Date.now() - startTime;
+    let remaining = levelTimeLimit - elapsed;
+    if (remaining <= 0) {
+        playerDie("TEMPS ÉCOULÉ !");
+        return;
+    }
+    uiTimer.innerText = (remaining / 1000).toFixed(2);
+    if (remaining < 5000) uiTimer.style.color = 'red';
+    else uiTimer.style.color = '#ffcc00';
+
+    // Physique
+    if (keys.right) player.dx = player.speed;
+    else if (keys.left) player.dx = -player.speed;
+    else player.dx *= 0.8;
+
+    if (keys.up && player.grounded) {
+        player.dy = -player.jumpForce;
+        player.grounded = false;
+        createParticles(player.x + player.width/2, player.y + player.height, 5, '#00ffcc');
+    }
+
+    player.dy += player.gravity;
+    player.x += player.dx;
+    player.y += player.dy;
+    player.grounded = false;
+
+    // Collisions Plateformes
+    platforms.forEach(plat => {
+        if (player.x < plat.x + plat.w && player.x + player.width > plat.x &&
+            player.y < plat.y + plat.h && player.y + player.height > plat.y) {
+            
+            // Collision basique AABB (Axis-Aligned Bounding Box) pour platformer
+            // On vérifie surtout la collision par le haut (atterrissage)
+            
+            // Calculer la pénétration
+            let overlapX = (player.x + player.width/2) - (plat.x + plat.w/2);
+            let overlapY = (player.y + player.height/2) - (plat.y + plat.h/2);
+            let hWidths = (player.width + plat.w)/2;
+            let hHeights = (player.height + plat.h)/2;
+
+            if (Math.abs(overlapX) < hWidths && Math.abs(overlapY) < hHeights) {
+                let ox = hWidths - Math.abs(overlapX);
+                let oy = hHeights - Math.abs(overlapY);
+
+                if (ox >= oy) {
+                    if (overlapY > 0) { // Collision tête
+                        player.y += oy;
+                        player.dy = 0;
+                    } else { // Collision pieds (sol)
+                        player.y -= oy;
+                        player.dy = 0;
+                        player.grounded = true;
+                    }
+                } else {
+                    if (overlapX > 0) { // Collision gauche
+                        player.x += ox;
+                        player.dx = 0;
+                    } else { // Collision droite
+                        player.x -= ox;
+                        player.dx = 0;
+                    }
+                }
+            }
+        }
+    });
+
+    // Win condition
+    if (player.x < goal.x + goal.width && player.x + player.width > goal.x &&
+        player.y < goal.y + goal.height && player.y + player.height > goal.y) {
+        nextLevel();
+    }
+
+    // Death (Fallen)
+    if (player.y > canvas.height) {
+        playerDie("CHUTE MORTELLE !");
+    }
+}
+
+function nextLevel() {
+    currentLevel++;
+    if (currentLevel > 20) {
+        currentState = GAME_STATE.VICTORY;
+        uiMessage.innerHTML = `<h1>VICTOIRE ULTIME</h1><p style="color:#00ffcc">TU ES UN DIEU DU STAGE</p><p class="blink">ESPACE POUR REJOUER</p>`;
+        uiMessage.style.display = 'block';
+    } else {
+        startLevel(currentLevel);
+        createParticles(player.x, player.y, 20, '#ff00ff');
+    }
+}
+
+function playerDie(reason) {
+    currentState = GAME_STATE.GAME_OVER;
+    uiMessage.innerHTML = `<h1 style="color:red">GAME OVER</h1><p>${reason}</p><p class="blink">ESPACE POUR RÉESSAYER</p>`;
+    uiMessage.style.display = 'block';
+    createParticles(player.x, player.y, 50, 'red');
+}
+
+function createParticles(x, y, count, color) {
+    for (let i = 0; i < count; i++) {
+        particles.push({
+            x: x, y: y,
+            vx: (Math.random() - 0.5) * 8,
+            vy: (Math.random() - 0.5) * 8,
+            life: 1.0, color: color
+        });
+    }
+}
+
+function draw() {
+    // Camera Logic
+    let cameraX = 0;
+    if (currentState === GAME_STATE.PLAYING) {
+        cameraX = -player.x + canvas.width / 3;
+    }
+    
+    // Clear
+    ctx.fillStyle = '#0f0f1a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw Stars (Parallax light)
+    ctx.save();
+    stars.forEach(star => {
+        ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+        // Déplace les étoiles doucement
+        let px = (star.x - (player.x * 0.05)) % canvas.width;
+        if(px < 0) px += canvas.width;
+        ctx.beginPath();
+        ctx.arc(px, star.y, star.size, 0, Math.PI*2);
+        ctx.fill();
+    });
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(cameraX, 0);
+
+    // Draw Platforms
+    platforms.forEach(plat => {
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#00ffcc';
+        ctx.fillStyle = '#00ffcc';
+        ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+        
+        // Detail inside
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#003333';
+        ctx.fillRect(plat.x + 2, plat.y + 2, plat.w - 4, plat.h - 4);
+    });
+
+    // Draw Goal
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = '#ff00ff';
+    ctx.fillStyle = goal.color;
+    ctx.fillRect(goal.x, goal.y, goal.width, goal.height);
+
+    // Draw Player
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = '#fff';
+    ctx.fillStyle = player.color;
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+
+    // Particles
+    particles.forEach((p, i) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.04;
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, 4, 4);
+        if (p.life <= 0) particles.splice(i, 1);
+    });
+    ctx.globalAlpha = 1;
+
+    ctx.restore();
+    requestAnimationFrame(update);
+    requestAnimationFrame(draw);
+}
+
+// Initial draw needed because update loop stops when not playing
+// But here we merged loop
+function loop() {
+    update();
+    draw();
+}
+
+init();
+
+</script>
+</body>
+</html>

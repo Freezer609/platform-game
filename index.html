@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NEON BLASTER - WINGS OF FREEDOM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="rotate-msg">TOURNER L'ECRAN SVP 🔄</div>
+<div id="crt-overlay"></div>
+
+<!-- Audios -->
+<audio id="bgm" src="music.mp3" loop></audio>
+<audio id="sfx-domain" src="domain.mp3"></audio>
+<audio id="sfx-bf" src="blackflash.mp3"></audio>
+
+<!-- Audio Controls -->
+<div class="audio-controls">
+    <div id="music-btn" onclick="Sound.toggleMusic()">🎵</div>
+    <div id="mute-btn" onclick="Sound.toggleMaster()">🔊</div>
+</div>
+
+<div id="game-container">
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    
+    <div class="ui-layer">
+        <div class="hud">
+            <div>LVL: <span id="levelDisplay">1</span></div>
+            <div id="score-box">SCORE: <span id="score">0</span></div>
+            <div>TIME: <span id="timer">00.00</span></div>
+            <div><span id="mute-indicator"></span></div>
+        </div>
+
+        <div class="dash-container">
+            <div class="dash-label">ENERGY</div>
+            <div id="dash-bar"></div>
+        </div>
+        
+        <div id="message" class="center-msg"></div>
+
+        <!-- MOBILE CONTROLS -->
+        <div class="mobile-controls">
+            <div class="d-pad">
+                <div id="btn-up" class="d-btn d-up"></div>
+                <div id="btn-left" class="d-btn d-left"></div>
+                <div id="btn-right" class="d-btn d-right"></div>
+                <div id="btn-down" class="d-btn d-down"></div>
+            </div>
+            <div class="action-pad">
+                <div id="btn-atk" class="act-btn btn-atk">ATK</div>
+                <div id="btn-jump" class="act-btn">JUMP</div>
+                <div id="btn-dash" class="act-btn">DASH</div>
+                <div id="btn-ult" class="act-btn btn-ult">ULT</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ORDRE DE CHARGEMENT CRITIQUE -->
+<script src="settings.js"></script> 
+<script src="classes.js"></script>  
+<script src="main.js"></script>     
+
+</body>
+</html>
