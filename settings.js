@@ -21,6 +21,16 @@ function initGlobals() {
     sfxBF = document.getElementById('sfx-bf');
 }
 
+// UI HELPER
+function showMessage(text, duration) {
+    if(!uiMessage) return;
+    uiMessage.innerText = text;
+    uiMessage.style.display = 'block';
+    uiMessage.style.top = '20%';
+    uiMessage.style.color = '#ffff00';
+    setTimeout(function() { uiMessage.style.display = 'none'; }, duration);
+}
+
 // STATE
 const GAME_STATE = { INTRO: -1, MENU: 0, PLAYING: 1, GAMEOVER: 2, VICTORY: 3, QTE: 4 };
 var state = GAME_STATE.INTRO; 
@@ -184,13 +194,9 @@ const ITADORI_DATA = {
         ctx.fillStyle = '#fff'; if (p.facingRight) ctx.fillRect(p.x + 12, p.y + 6, 4, 4); else ctx.fillRect(p.x + 4, p.y + 6, 4, 4);
     },
     triggerBlackFlash: function(targetX, targetY) {
-        Sound.blackFlash(); 
-        camera.shake = 25;
-        for(let i=0; i<15; i++) { 
-            FX.blackFlashList.push({ x: targetX, y: targetY, angle: Math.random() * Math.PI * 2, len: 30 + Math.random() * 60, life: 15 }); 
-        }
-        FX.addParticle(targetX, targetY, 40, '#000', 3); 
-        FX.addParticle(targetX, targetY, 40, '#ff0000', 3);
+        Sound.blackFlash(); camera.shake = 25;
+        for(let i=0; i<15; i++) { FX.blackFlashList.push({ x: targetX, y: targetY, angle: Math.random() * Math.PI * 2, len: 30 + Math.random() * 60, life: 15 }); }
+        FX.addParticle(targetX, targetY, 40, '#000', 3); FX.addParticle(targetX, targetY, 40, '#ff0000', 3);
         return 500;
     }
 };
@@ -199,9 +205,18 @@ const LEVI_DATA = {
     colors: { cape: '#00ff00', uniform: '#fff' },
     draw: function(ctx, p) {
         ctx.shadowBlur = 10; ctx.shadowColor = '#fff';
+        // Uniform
         ctx.fillStyle = '#fff'; ctx.fillRect(p.x, p.y, p.w, p.h);
-        ctx.fillStyle = this.colors.cape; ctx.fillRect(p.x - 2, p.y, 6, p.h); 
-        ctx.fillStyle = '#5c3a1e'; ctx.fillRect(p.x, p.y+15, p.w, 5);
+        // Cape
+        ctx.fillStyle = this.colors.cape; ctx.fillRect(p.x - 2, p.y + 2, p.w + 4, 8); 
+        // Scabbards (ODM Gear) - New
+        ctx.fillStyle = '#888'; 
+        ctx.fillRect(p.x - 4, p.y + 12, 4, 8); // Left box
+        ctx.fillRect(p.x + p.w, p.y + 12, 4, 8); // Right box
+        // Boots
+        ctx.fillStyle = '#5c3a1e'; ctx.fillRect(p.x, p.y+16, p.w, 4);
+        
+        // Blades
         ctx.fillStyle = '#ccc';
         if(p.facingRight) ctx.fillRect(p.x + 15, p.y + 10, 10, 2); else ctx.fillRect(p.x - 5, p.y + 10, 10, 2);
     }

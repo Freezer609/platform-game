@@ -1,6 +1,6 @@
 // ==========================================
-// 3. MAIN.JS - GAME LOGIC (STABLE)
-// ==========================================
+// 3. MAIN.JS - GAME LOGIC (FINAL STABILITY FIX)
+// ========================================== 
 
 initGlobals();
 
@@ -44,13 +44,13 @@ const game = {
             if(k === 'KeyG') keys.guard = true; 
             if(k === 'KeyM') Sound.toggleMusic(); 
 
-            if (state === GAME_STATE.QTE) Game.handleQTEInput(k);
+            if (state === GAME_STATE.QTE) game.handleQTEInput(k);
             
             if (state === GAME_STATE.INTRO && (k === 'Space' || k === 'Enter')) {
                 state = GAME_STATE.MENU;
-                Game.showMenu();
+                game.showMenu();
             } else if ((state === GAME_STATE.MENU || state === GAME_STATE.GAMEOVER || state === GAME_STATE.VICTORY) && (k === 'Space' || k === 'Enter')) {
-                Game.start();
+                game.start();
             }
         });
 
@@ -106,8 +106,8 @@ const game = {
              specials = "R = DOMAIN | H = PURPLE | T = BOOGIE";
          }
          if (currentSkin === 'LEVI') {
-             controls = "E = BEYBLADE SPIN";
-             specials = "R = THUNDER SPEAR";
+             controls = "E = GRAPPLE";
+             specials = "R = CIRCULAR SLASH";
          }
 
          uiMessage.innerHTML =
@@ -116,7 +116,7 @@ const game = {
             '<div class="skin-selector">' +
                 '<span class="skin-opt ' + neonClass + '" onclick="Game.setSkin(\'NEON\')">[ NEON ]</span> ' +
                 '<span class="skin-opt ' + itadoriClass + '" onclick="Game.setSkin(\'ITADORI\')">[ ITADORI ]</span> ' +
-                '<span class="skin-opt ' + leviClass + '" onclick="Game.setSkin(\'LEVI\')">[ LEVI ]</span>' +
+                '<span class="skin-opt ' + leviClass + '" onclick="Game.setSkin(\'LEVI\')">[ LEVI ]</span>'
             '</div>' +
             '<div class="skin-selector" onclick="Game.toggleSorcerer()">' + sorcererText + ' SORCERER MODE (NEON)</div>' +
             '<div class="controls-box">' +
@@ -221,7 +221,7 @@ const game = {
                 camera.shake = 10;
                 var self = this;
                 this.enemies.forEach(function(e) {
-                    if (Game.checkRect(self.player, {x: e.x-50, y:e.y-50, w:e.w+100, h:e.h+100})) {
+                    if (game.checkRect(self.player, {x: e.x-50, y:e.y-50, w:e.w+100, h:e.h+100})) {
                         e.active = false;
                     }
                 });
@@ -229,6 +229,19 @@ const game = {
         } else {
             this.gameOver("QTE FAILED");
             Sound.qteFail();
+        }
+    },
+
+    startQTE: function(enemy) {
+        state = GAME_STATE.QTE;
+        qte.active = true;
+        qte.maxTime = Math.max(90, 150 - (level * 2)); 
+        qte.timer = qte.maxTime;
+        qte.index = 0;
+        qte.sequence = [];
+        for(let i=0; i<6; i++) {
+            let r = Math.floor(Math.random() * 4);
+            qte.sequence.push({ symbol: QTE_SYMBOLS[r], code: QTE_CODES[r] });
         }
     },
 
@@ -256,7 +269,7 @@ const game = {
 
         if (state === GAME_STATE.QTE) {
             qte.timer--;
-            if (qte.timer <= 0) { this.gameOver("TOO SLOW"); Sound.qteFail(); } //
+            if (qte.timer <= 0) { this.gameOver("TOO SLOW"); Sound.qteFail(); } 
             return; 
         }
 
@@ -277,14 +290,14 @@ const game = {
         this.bullets = this.bullets.filter(function(b) { return b.active; });
         
         this.platforms.forEach(function(p) {
-            if (Game.checkRect(Game.player, p)) Game.resolvePlatformCollision(Game.player, p);
+            if (game.checkRect(game.player, p)) game.resolvePlatformCollision(game.player, p);
         });
         
-        var self = this; // CAPTURE THIS FOR CALLBACKS
+        var self = this; 
         
         this.bullets.forEach(function(b) {
             self.enemies.forEach(function(e) {
-                if (e.active && Game.checkRect(b, e)) {
+                if (e.active && game.checkRect(b, e)) {
                     if(!(b instanceof HollowPurple)) b.active = false; 
                     score += 100; uiScore.innerText = score;
                     Sound.explosion();
@@ -296,22 +309,18 @@ const game = {
         this.enemies = this.enemies.filter(function(e) { return e.active; });
         
         this.enemies.forEach(function(e) {
-            if (Game.checkRect(self.player, e)) {
-                // LEVI SPIN KILL
+            if (game.checkRect(self.player, e)) {
+                
+                // Levi Spin Kill
                 if (currentSkin === 'LEVI' && self.player.isSpinning) {
-                    e.active = false;
-                    Sound.explosion();
-                    FX.addParticle(e.x, e.y, 20, '#00ff00');
-                    score += 300;
-                    return;
+                    e.active = false; Sound.explosion(); FX.addParticle(e.x, e.y, 20, '#00ff00'); score += 300; return;
                 }
-
+                
                 if (currentSkin === 'ITADORI' && !self.player.isDashing && !self.player.isSmashing) {
                     e.active = false;
                     if(Math.random() < 0.2) {
                         score += ITADORI_DATA.triggerBlackFlash(e.x + e.w/2, e.y + e.h/2);
                     } else {
-                        // Normal hit instead of Divergent Fist to avoid crash
                         Sound.explosion();
                         FX.addParticle(e.x, e.y, 10, '#ff0000');
                         score += 100;
@@ -333,7 +342,7 @@ const game = {
                         if (JJK_SYSTEM.simpleDomain.active) {
                             self.player.dx = self.player.x < e.x ? -10 : 10; FX.addParticle(self.player.x, self.player.y, 10, '#0088ff');
                         } else {
-                            Game.startQTE(e);
+                            game.startQTE(e);
                         }
                     }
                 }
@@ -341,7 +350,7 @@ const game = {
         });
 
         this.items.forEach(function(i) {
-            if (i.active && Game.checkRect(self.player, i)) {
+            if (i.active && game.checkRect(self.player, i)) {
                 i.active = false; Sound.powerup();
                 if(i.type === 'shield') self.player.hasShield = true;
                 if(i.type === 'rapid') self.player.rapidFireTimer = 300; 
@@ -352,7 +361,7 @@ const game = {
         });
         this.items = this.items.filter(function(i) { return i.active; });
         
-        if (Game.checkRect(this.player, this.goal)) {
+        if (game.checkRect(this.player, this.goal)) {
             level++; Sound.powerup(); score += 500;
             if (level > 20) {
                 state = GAME_STATE.VICTORY; try { bgm.pause(); } catch(e){}
@@ -463,7 +472,7 @@ const game = {
 
         if (this.goal) {
             ctx.shadowBlur = 20; ctx.shadowColor = '#ffff00'; ctx.fillStyle = '#ffff00';
-            ctx.fillRect(this.goal.x, this.goal.y, this.goal.h, this.goal.h);
+            ctx.fillRect(this.goal.x, this.goal.y, this.goal.w, this.goal.h);
         }
 
         if (this.player) {
