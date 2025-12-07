@@ -240,8 +240,8 @@ class Player extends Entity {
             keys.purplePressed = true;
             this.dashEnergy -= 50;
             Sound.purple();
-            let spawnY = (this.y + this.h / 2) - 30 - 10; 
-            JJK_SYSTEM.purples.push(new HollowPurple(this.x, spawnY, this.facingRight ? 1 : -1));
+            let spawnY = this.y + this.h - 60; // Align bottom with feet
+            JJK_SYSTEM.purples.push(new HollowPurple(this.x - 20, spawnY, this.facingRight ? 1 : -1)); // Center X
             if(window.Game) window.Game.showMessage("HOLLOW PURPLE", 1000);
         }
         if (!keys.purple) keys.purplePressed = false;

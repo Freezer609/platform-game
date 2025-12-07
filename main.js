@@ -245,6 +245,22 @@ const game = {
         }
     },
 
+    showMessage: function(text, duration) {
+        let div = document.createElement('div');
+        div.innerText = text;
+        div.style.position = 'absolute';
+        div.style.top = '20%';
+        div.style.width = '100%';
+        div.style.textAlign = 'center';
+        div.style.color = '#ffff00';
+        div.style.fontFamily = '"Press Start 2P"';
+        div.style.fontSize = '30px';
+        div.style.textShadow = '4px 4px 0 #000';
+        div.style.zIndex = '100';
+        document.body.appendChild(div);
+        setTimeout(() => { if(div.parentNode) div.parentNode.removeChild(div); }, duration);
+    },
+
     update: function() {
         if (state === GAME_STATE.INTRO) {
             intro.waitTimer++;
