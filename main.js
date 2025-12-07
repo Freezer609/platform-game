@@ -30,8 +30,25 @@ const game = {
     init: function() {
         this.setupTouchControls();
 
+        // Cheat Code Buffer
+        let cheatBuffer = "";
+
         window.addEventListener('keydown', function(e) {
             let k = e.code;
+            
+            // CHEAT CODE: 075 -> TP TO END
+            if (e.key >= '0' && e.key <= '9') {
+                cheatBuffer += e.key;
+                if (cheatBuffer.length > 3) cheatBuffer = cheatBuffer.slice(-3);
+                if (cheatBuffer === "075" && game.player && game.goal) {
+                    game.player.x = game.goal.x - 100;
+                    game.player.y = game.goal.y;
+                    game.showMessage("WARPING TO END...", 2000);
+                    Sound.powerup();
+                    cheatBuffer = "";
+                }
+            }
+
             if(k === 'ArrowRight' || k === 'KeyD') keys.right = true;
             if(k === 'ArrowLeft' || k === 'KeyA' || k === 'KeyQ') keys.left = true; 
             if(k === 'ArrowDown' || k === 'KeyS') keys.down = true; 
@@ -334,9 +351,25 @@ const game = {
                 
                 if (currentSkin === 'ITADORI' && !self.player.isDashing && !self.player.isSmashing) {
                     e.active = false;
-                    if(Math.random() < 0.2) {
+                    
+                    // Black Flash Probability Check (Base 20% + Bonus)
+                    if(Math.random() < (0.2 + self.player.bfChance)) {
                         score += ITADORI_DATA.triggerBlackFlash(e.x + e.w/2, e.y + e.h/2);
+                        
+                        // Chain Logic
+                        self.player.bfStreak++;
+                        self.player.bfChance = Math.min(0.8, self.player.bfChance + 0.2); // Add 20% chance, Cap total at 100%
+                        
+                        game.showMessage("BLACK FLASH CHAIN: " + self.player.bfStreak, 1000);
+                        
+                        // Small Energy Restore on Chain
+                        if(self.player.bfStreak > 1) self.player.dashEnergy = Math.min(100, self.player.dashEnergy + 20);
+                        
                     } else {
+                        // Reset Streak on Miss
+                        self.player.bfStreak = 0;
+                        self.player.bfChance = 0.0;
+                        
                         Sound.explosion();
                         FX.addParticle(e.x, e.y, 10, '#ff0000');
                         score += 100;

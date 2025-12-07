@@ -142,6 +142,10 @@ class Player extends Entity {
         this.grappleActive = false;
         this.grappleX = 0;
         this.grappleY = 0;
+        
+        // BLACK FLASH SYSTEM
+        this.bfStreak = 0;
+        this.bfChance = 0.0;
     }
 
     update(enemies, bullets) {
@@ -149,7 +153,9 @@ class Player extends Entity {
             this.burnoutTimer--;
             uiDashBar.style.backgroundColor = '#555'; 
         } else {
-            if (!JJK_SYSTEM.simpleDomain.active && this.dashEnergy < 100) this.dashEnergy += 0.1;
+            // Zone Buff: Regen energy faster if streak > 0
+            let regenRate = 0.1 + (this.bfStreak * 0.05);
+            if (!JJK_SYSTEM.simpleDomain.active && this.dashEnergy < 100) this.dashEnergy += regenRate;
             uiDashBar.style.backgroundColor = this.dashEnergy >= 99 ? '#aa00ff' : '#00ffff'; 
         }
         uiDashBar.style.width = this.dashEnergy + '%';
@@ -277,8 +283,12 @@ class Player extends Entity {
         if (this.isSmashing) { this.dy = 25; FX.addParticle(this.x, this.y, 2, '#ffaa00', 0); }
 
         if (!this.isSmashing && !this.grappleActive) {
-            if (keys.right) { this.dx = PLAYER_SPEED; this.facingRight = true; }
-            else if (keys.left) { this.dx = -PLAYER_SPEED; this.facingRight = false; }
+            // ZONE BUFF: Speed increases with streak
+            let speedBuff = 1 + (this.bfStreak * 0.1); 
+            let currentSpeed = PLAYER_SPEED * speedBuff;
+
+            if (keys.right) { this.dx = currentSpeed; this.facingRight = true; }
+            else if (keys.left) { this.dx = -currentSpeed; this.facingRight = false; }
             else { this.dx *= FRICTION; }
         }
 
