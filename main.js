@@ -42,7 +42,7 @@ const game = {
                 if (cheatBuffer.length > 3) cheatBuffer = cheatBuffer.slice(-3);
                 if (cheatBuffer === "075" && game.player && game.goal) {
                     game.player.x = game.goal.x - 100;
-                    game.player.y = game.goal.y;
+                    game.player.y = game.goal.y - game.player.h - 10; // Teleport above the goal platform
                     game.showMessage("WARPING TO END...", 2000);
                     Sound.powerup();
                     cheatBuffer = "";
