@@ -40,11 +40,20 @@ const game = {
             if (e.key >= '0' && e.key <= '9') {
                 cheatBuffer += e.key;
                 if (cheatBuffer.length > 3) cheatBuffer = cheatBuffer.slice(-3);
+                
                 if (cheatBuffer === "075" && game.player && game.goal) {
-                    game.player.x = game.goal.x - 100;
-                    game.player.y = game.goal.y + game.goal.h / 2 - game.player.h / 2; // Teleport vertically centered in the goal
+                    game.player.x = game.goal.x; // Align horizontally
+                    game.player.y = game.goal.y - game.player.h - 50; // Drop from just above
                     game.showMessage("WARPING TO END...", 2000);
                     Sound.powerup();
+                    cheatBuffer = "";
+                }
+
+                if (cheatBuffer === "074" && game.player) {
+                    game.player.hasShield = true;
+                    game.showMessage("SHIELD EQUIPPED", 2000);
+                    Sound.powerup();
+                    FX.addParticle(game.player.x, game.player.y, 20, '#00ffff');
                     cheatBuffer = "";
                 }
             }
