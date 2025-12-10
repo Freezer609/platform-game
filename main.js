@@ -68,6 +68,7 @@ const game = {
             if(k === 'KeyT') keys.swap = true;
             if(k === 'KeyH') keys.purple = true;
             if(k === 'KeyG') keys.guard = true; 
+            if(k === 'KeyF') keys.extra = true; // NEW
             if(k === 'KeyM') Sound.toggleMusic(); 
 
             if (state === GAME_STATE.QTE) game.handleQTEInput(k);
@@ -92,6 +93,7 @@ const game = {
             if(k === 'KeyT') keys.swap = false;
             if(k === 'KeyH') keys.purple = false;
             if(k === 'KeyG') keys.guard = false;
+            if(k === 'KeyF') keys.extra = false; // NEW
         });
         this.loop();
     },
@@ -122,6 +124,8 @@ const game = {
          let neonClass = currentSkin === 'NEON' ? 'active' : '';
          let itadoriClass = currentSkin === 'ITADORI' ? 'active' : '';
          let leviClass = currentSkin === 'LEVI' ? 'active' : '';
+         let gojoClass = currentSkin === 'GOJO' ? 'active' : '';
+         let sukunaClass = currentSkin === 'SUKUNA' ? 'active' : '';
          let sorcererText = sorcererMode ? '[X]' : '[ ]';
          
          let controls = "E = SHOOT";
@@ -135,6 +139,14 @@ const game = {
              controls = "E = GRAPPLE";
              specials = "R = CIRCULAR SLASH";
          }
+         if (currentSkin === 'GOJO') {
+             controls = "E = PUNCH | G = GUARD";
+             specials = "R = VOID | H = PURPLE | T = RED | F = BLUE";
+         }
+         if (currentSkin === 'SUKUNA') {
+             controls = "E = DISMANTLE | G = GUARD";
+             specials = "R = SHRINE | H = FUGA | T = CLEAVE";
+         }
 
          uiMessage.innerHTML =
             '<h1 class="glitch" data-text="NEON BLASTER">NEON BLASTER</h1>' +
@@ -142,7 +154,15 @@ const game = {
             '<div class="skin-selector">' +
                 '<span class="skin-opt ' + neonClass + '" onclick="Game.setSkin(\'NEON\')">[ NEON ]</span> ' +
                 '<span class="skin-opt ' + itadoriClass + '" onclick="Game.setSkin(\'ITADORI\')">[ ITADORI ]</span> ' +
-                '<span class="skin-opt ' + leviClass + '" onclick="Game.setSkin(\'LEVI\')">[ LEVI ]</span>'
+                '<span class="skin-opt ' + leviClass + '" onclick="Game.setSkin(\'LEVI\')">[ LEVI ]</span>' +
+                '<span class="skin-opt ' + gojoClass + '" onclick="Game.setSkin(\'GOJO\')">[ GOJO ]</span>' +
+                '<span class="skin-opt ' + sukunaClass + '" onclick="Game.setSkin(\'SUKUNA\')">[ SUKUNA ]</span>' +
+            '</div>' +
+            '<div class="difficulty-selector" style="margin-top:10px; font-size:12px;">' +
+                '<span class="blink" style="color:#aaa;">DIFFICULTY: </span>' +
+                '<span onclick="Game.setDifficulty(\'EASY\')" style="cursor:pointer; margin:0 5px; color:' + (currentDifficulty==='EASY'?'#0f0':'#555') + '">EASY</span>' +
+                '<span onclick="Game.setDifficulty(\'NORMAL\')" style="cursor:pointer; margin:0 5px; color:' + (currentDifficulty==='NORMAL'?'#ff0':'#555') + '">NORMAL</span>' +
+                '<span onclick="Game.setDifficulty(\'HARD\')" style="cursor:pointer; margin:0 5px; color:' + (currentDifficulty==='HARD'?'#f00':'#555') + '">HARD</span>' +
             '</div>' +
             '<div class="skin-selector" onclick="Game.toggleSorcerer()">' + sorcererText + ' SORCERER MODE (NEON)</div>' +
             '<div class="controls-box">' +
@@ -159,6 +179,7 @@ const game = {
         else { PLAYER_SPEED = 6; JUMP_FORCE = 14; }
         this.showMenu(); 
     },
+    setDifficulty: function(diff) { currentDifficulty = diff; this.showMenu(); },
     toggleSorcerer: function() { sorcererMode = !sorcererMode; this.showMenu(); },
 
     start: function() {
@@ -211,8 +232,10 @@ const game = {
                         let rand = Math.random();
                         let type = 'shield';
                         if(rand > 0.4) type = 'rapid';
-                        if(rand > 0.7) type = 'finger'; 
-                        if(rand > 0.9) type = 'rct'; 
+                        if(rand > 0.6) type = 'finger'; 
+                        if(rand > 0.75) type = 'rct'; 
+                        if(rand > 0.85) type = 'dmg_boost';
+                        if(rand > 0.95) type = 'speed_boost';
                         this.items.push(new Item(currentX + w/2, currentY - 30, type));
                     }
                     currentX += w + 20;
@@ -353,37 +376,59 @@ const game = {
         this.enemies.forEach(function(e) {
             if (game.checkRect(self.player, e)) {
                 
+                // GOJO PASSIVE
+                if (currentSkin === 'GOJO' && Math.random() < 0.85 && self.player.dashEnergy > 5) {
+                    self.player.dashEnergy -= 2;
+                    FX.addParticle(self.player.x, self.player.y, 2, '#fff');
+                    return; 
+                }
+
                 // Levi Spin Kill
                 if (currentSkin === 'LEVI' && self.player.isSpinning) {
                     e.active = false; Sound.explosion(); FX.addParticle(e.x, e.y, 20, '#00ff00'); score += 300; return;
                 }
                 
                 if (currentSkin === 'ITADORI' && !self.player.isDashing && !self.player.isSmashing) {
-                    e.active = false;
                     
-                    // Black Flash Probability Check (Base 20% + Bonus)
-                    if(Math.random() < (0.2 + self.player.bfChance)) {
+                    let rng = Math.random();
+                    // 1. BLACK FLASH (30% Base + Bonus)
+                    if(rng < (0.3 + self.player.bfChance)) {
+                        e.active = false;
                         score += ITADORI_DATA.triggerBlackFlash(e.x + e.w/2, e.y + e.h/2);
                         
                         // Chain Logic
                         self.player.bfStreak++;
-                        self.player.bfChance = Math.min(0.8, self.player.bfChance + 0.2); // Add 20% chance, Cap total at 100%
-                        
+                        self.player.bfChance = Math.min(0.7, self.player.bfChance + 0.1); 
                         game.showMessage("BLACK FLASH CHAIN: " + self.player.bfStreak, 1000);
-                        
-                        // Small Energy Restore on Chain
                         if(self.player.bfStreak > 1) self.player.dashEnergy = Math.min(100, self.player.dashEnergy + 20);
-                        
-                    } else {
-                        // Reset Streak on Miss
-                        self.player.bfStreak = 0;
-                        self.player.bfChance = 0.0;
-                        
-                        Sound.explosion();
-                        FX.addParticle(e.x, e.y, 10, '#ff0000');
+                        self.player.dy = -5; self.player.dx = self.player.x < e.x ? -5 : 5; 
+                    } 
+                    // 2. NORMAL HIT (50% Chance -> 0.3 to 0.8)
+                    else if (rng < 0.8) {
+                        e.active = false;
+                        Sound.smash(); // Standard hit sound
+                        FX.addParticle(e.x, e.y, 5, '#fff'); // Small Effect
                         score += 100;
+                        // Reset Streak
+                        self.player.bfStreak = 0; self.player.bfChance = 0.0;
+                        self.player.dy = -5; self.player.dx = self.player.x < e.x ? -5 : 5;
+                    } 
+                    // 3. MISS -> QTE (20% Chance)
+                    else {
+                        // WARNING DELAY
+                        game.showMessage("⚠️ DANGER ⚠️", 1500); 
+                        Sound.fuse();
+                        
+                        // Freeze player briefly to prevent other interactions during warning? 
+                        // Optional, but safer.
+                        
+                        setTimeout(function() {
+                            if(state === GAME_STATE.PLAYING && e.active) {
+                                game.startQTE(e); 
+                            }
+                        }, 1500);
                     }
-                    self.player.dy = -5; self.player.dx = self.player.x < e.x ? -5 : 5; return;
+                    return;
                 }
 
                 if(self.player.isDashing || self.player.isSmashing) {
@@ -413,7 +458,9 @@ const game = {
                 if(i.type === 'shield') self.player.hasShield = true;
                 if(i.type === 'rapid') self.player.rapidFireTimer = 300; 
                 if(i.type === 'finger') self.player.dashEnergy = 100; 
-                if(i.type === 'rct') self.player.hasRCT = true; 
+                if(i.type === 'rct') self.player.hasRCT = true;
+                if(i.type === 'dmg_boost') { self.player.bfStreak += 5; game.showMessage("DAMAGE UP", 1000); }
+                if(i.type === 'speed_boost') { self.player.overdriveTimer = 300; game.showMessage("SPEED UP", 1000); }
                 score += 200; uiScore.innerText = score; FX.addParticle(i.x, i.y, 15, i.color);
             }
         });
@@ -534,6 +581,20 @@ const game = {
         }
 
         if (this.player) {
+            // DRAW GRAPPLE CABLE (LEVI)
+            if (this.player.grappleActive) {
+                ctx.strokeStyle = '#888'; // Steel color
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(this.player.x + 10, this.player.y + 10); // From Center
+                ctx.lineTo(this.player.grappleX, this.player.grappleY); // To Hook
+                ctx.stroke();
+                
+                // Hook anchor
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(this.player.grappleX - 2, this.player.grappleY - 2, 4, 4);
+            }
+
             JJK_SYSTEM.drawPlayerEffects(ctx, this.player);
 
             if (this.player.hasShield) {
@@ -549,6 +610,10 @@ const game = {
                 ITADORI_DATA.draw(ctx, this.player);
             } else if (currentSkin === 'LEVI') {
                 LEVI_DATA.draw(ctx, this.player);
+            } else if (currentSkin === 'GOJO') {
+                GOJO_DATA.draw(ctx, this.player);
+            } else if (currentSkin === 'SUKUNA') {
+                SUKUNA_DATA.draw(ctx, this.player);
             } else {
                 ctx.shadowBlur = 15; ctx.shadowColor = this.player.color; ctx.fillStyle = this.player.color;
                 ctx.fillRect(this.player.x, this.player.y, this.player.w, this.player.h);

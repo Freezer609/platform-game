@@ -615,6 +615,15 @@ const game = {
             <div class="skin-selector">
                 <div id="skin-neon" class="skin-btn ${currentSkin === 'NEON' ? 'selected' : ''}" onclick="Game.setSkin('NEON')">NEON</div>
                 <div id="skin-itadori" class="skin-btn ${currentSkin === 'ITADORI' ? 'selected' : ''}" onclick="Game.setSkin('ITADORI')">ITADORI</div>
+                <div id="skin-levi" class="skin-btn ${currentSkin === 'LEVI' ? 'selected' : ''}" onclick="Game.setSkin('LEVI')">LIVAI</div>
+                <div id="skin-gojo" class="skin-btn ${currentSkin === 'GOJO' ? 'selected' : ''}" onclick="Game.setSkin('GOJO')">GOJO</div>
+            </div>
+
+            <div class="difficulty-selector" style="margin-top:10px;">
+                <span class="blink" style="color:#aaa;">DIFFICULTY: </span>
+                <button onclick="Game.setDifficulty('EASY')" style="color:${currentDifficulty==='EASY'?'#0f0':'#555'}">EASY</button>
+                <button onclick="Game.setDifficulty('NORMAL')" style="color:${currentDifficulty==='NORMAL'?'#ff0':'#555'}">NORMAL</button>
+                <button onclick="Game.setDifficulty('HARD')" style="color:${currentDifficulty==='HARD'?'#f00':'#555'}">HARD</button>
             </div>
             
             <div class="sorcerer-option">
@@ -632,6 +641,7 @@ const game = {
     },
 
     setSkin: (skin) => { currentSkin = skin; Game.showMenu(); },
+    setDifficulty: (diff) => { currentDifficulty = diff; Game.showMenu(); },
     toggleSorcerer: (checkbox) => { sorcererMode = checkbox.checked; },
 
     start: () => {
@@ -684,8 +694,10 @@ const game = {
                         let rand = Math.random();
                         let type = 'shield';
                         if(rand > 0.4) type = 'rapid';
-                        if(rand > 0.7) type = 'finger'; 
-                        if(rand > 0.9) type = 'rct'; 
+                        if(rand > 0.6) type = 'finger'; 
+                        if(rand > 0.75) type = 'rct'; 
+                        if(rand > 0.85) type = 'dmg_boost';
+                        if(rand > 0.95) type = 'speed_boost';
                         game.items.push(new Item(currentX + w/2, currentY - 30, type));
                     }
                     currentX += w + 20;
@@ -822,6 +834,13 @@ const game = {
         
         game.enemies.forEach(e => {
             if (Game.checkRect(game.player, e)) {
+                // GOJO PASSIVE (INFINITY)
+                if (currentSkin === 'GOJO' && Math.random() < 0.6 && game.player.dashEnergy > 5) {
+                    game.player.dashEnergy -= 2;
+                    FX.addParticle(game.player.x, game.player.y, 2, '#fff');
+                    return; 
+                }
+
                 if (currentSkin === 'ITADORI' && !game.player.isDashing && !game.player.isSmashing) {
                     e.active = false;
                     score += ITADORI_DATA.triggerBlackFlash(e.x + e.w/2, e.y + e.h/2);
@@ -857,6 +876,8 @@ const game = {
                 if(i.type === 'rapid') game.player.rapidFireTimer = 300; 
                 if(i.type === 'finger') game.player.dashEnergy = 100; 
                 if(i.type === 'rct') game.player.hasRCT = true; 
+                if(i.type === 'dmg_boost') { game.player.bfStreak += 5; Game.showMessage("DAMAGE UP", 1000); }
+                if(i.type === 'speed_boost') { game.player.overdriveTimer = 300; Game.showMessage("SPEED UP", 1000); }
                 score += 200; uiScore.innerText = score; FX.addParticle(i.x, i.y, 15, i.color);
             }
         });
@@ -985,6 +1006,10 @@ const game = {
             
             if (currentSkin === 'ITADORI') {
                 ITADORI_DATA.draw(ctx, game.player);
+            } else if (currentSkin === 'LEVI') {
+                LEVI_DATA.draw(ctx, game.player);
+            } else if (currentSkin === 'GOJO') {
+                GOJO_DATA.draw(ctx, game.player);
             } else {
                 ctx.shadowBlur = 15; ctx.shadowColor = game.player.color; ctx.fillStyle = game.player.color;
                 ctx.fillRect(game.player.x, game.player.y, game.player.w, game.player.h);
